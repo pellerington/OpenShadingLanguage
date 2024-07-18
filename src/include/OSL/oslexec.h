@@ -995,6 +995,7 @@ public:
 
     void register_closure(string_view name, int id, const ClosureParam* params,
                           PrepareClosureFunc prepare, SetupClosureFunc setup);
+    void register_closure(string_view name, int id, const TypeDesc* params);
 
     /// Query either by name or id an existing closure. If name is non
     /// NULL it will use it for the search, otherwise id would be used

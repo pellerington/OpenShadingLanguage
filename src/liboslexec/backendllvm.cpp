@@ -527,7 +527,7 @@ BackendLLVM::llvm_load_component_value(const Symbol& sym, int deriv,
 llvm::Value*
 BackendLLVM::llvm_load_arg(const Symbol& sym, bool derivs)
 {
-    OSL_DASSERT(sym.typespec().is_float_based());
+    // OSL_DASSERT(sym.typespec().is_float_based());
     if (sym.typespec().is_int() || (sym.typespec().is_float() && !derivs)) {
         // Scalar case
         return llvm_load_value(sym);

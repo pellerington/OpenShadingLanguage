@@ -1719,6 +1719,22 @@ BackendLLVM::initialize_llvm_group()
             ll.add_function_mapping(f, (void*)i->second.function);
     }
 
+    // Create closure functions
+    auto closures = shadingsys().m_closure_registry.get_closures_name_to_id();
+    for(auto closure = closures.begin(); closure != closures.end(); closure++) {
+        const ClosureRegistry::ClosureEntry* clentry = shadingsys().find_closure(closure->first);
+        if(clentry->exclusive_allocate)
+        {
+            const ustring funcname = ustring::concat("osl_allocate_", closure->first);
+            std::vector<llvm::Type*> params{ ll.type_void_ptr(), ll.type_void_ptr() };
+            for (int carg = 0; carg < clentry->nformal; ++carg) {
+                const ClosureParam& p = clentry->params[carg];
+                params.push_back(llvm_pass_type(p.type));
+            }
+            ll.make_function(funcname.c_str(), false, ll.type_void_ptr(), params);
+        }
+    }
+
     // Needed for closure setup
     std::vector<llvm::Type*> params(3);
     params[0]                        = (llvm::Type*)ll.type_char_ptr();

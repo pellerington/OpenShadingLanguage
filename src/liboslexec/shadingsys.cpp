@@ -650,6 +650,15 @@ ShadingSystem::register_closure(string_view name, int id,
 
 
 
+void
+ShadingSystem::register_closure(string_view name, int id, 
+                                const TypeDesc* params)
+{
+    return m_impl->register_closure(name, id, params);
+}
+
+
+
 bool
 ShadingSystem::query_closure(const char** name, int* id,
                              const ClosureParam** params)
@@ -1461,6 +1470,15 @@ ShadingSystemImpl::register_closure(string_view name, int id,
         }
     }
     m_closure_registry.register_closure(name, id, params, prepare, setup);
+}
+
+
+
+void
+ShadingSystemImpl::register_closure(string_view name, int id, 
+                                    const TypeDesc* params)
+{
+    m_closure_registry.register_closure(name, id, params);
 }
 
 
@@ -4362,6 +4380,36 @@ ClosureRegistry::register_closure(string_view name, int id,
     }
     entry.prepare                       = prepare;
     entry.setup                         = setup;
+    entry.exclusive_allocate            = false;
+    m_closure_name_to_id[ustring(name)] = id;
+}
+
+
+
+void
+ClosureRegistry::register_closure(string_view name, int id,
+                                  const TypeDesc* params)
+{
+    if (m_closure_table.size() <= (size_t)id)
+        m_closure_table.resize(id + 1);
+    ClosureEntry& entry = m_closure_table[id];
+    entry.id            = id;
+    entry.name          = name;
+    entry.nformal       = 0;
+    entry.nkeyword      = 0;
+    entry.struct_size   = 0; /* params could be NULL */
+    for (int i = 0; params; ++i) {
+        if (params[i] == TypeDesc())
+            break;
+        entry.params.push_back({params[i], 0, NULL, 0});
+        // if (params[i].key == nullptr)
+            entry.nformal++;
+        // else
+        //     entry.nkeyword++;
+    }
+    entry.prepare                       = NULL;
+    entry.setup                         = NULL;
+    entry.exclusive_allocate            = true;
     m_closure_name_to_id[ustring(name)] = id;
 }
 

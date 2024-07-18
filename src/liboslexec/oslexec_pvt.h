@@ -486,10 +486,12 @@ public:
         // Creation callbacks
         PrepareClosureFunc prepare;
         SetupClosureFunc setup;
+        bool exclusive_allocate;
     };
 
     void register_closure(string_view name, int id, const ClosureParam* params,
                           PrepareClosureFunc prepare, SetupClosureFunc setup);
+    void register_closure(string_view name, int id, const TypeDesc* params);
 
     const ClosureEntry* get_entry(ustring name) const;
     const ClosureEntry* get_entry(int id) const
@@ -499,6 +501,8 @@ public:
     }
 
     bool empty() const { return m_closure_table.empty(); }
+
+    const std::map<ustring, int>& get_closures_name_to_id() { return m_closure_name_to_id; }
 
 private:
     // A mapping from name to ID for the compiler
@@ -708,6 +712,8 @@ public:
 
     void register_closure(string_view name, int id, const ClosureParam* params,
                           PrepareClosureFunc prepare, SetupClosureFunc setup);
+    void register_closure(string_view name, int id, const TypeDesc* params);
+
     bool query_closure(const char** name, int* id, const ClosureParam** params);
     const ClosureRegistry::ClosureEntry* find_closure(ustring name) const
     {

@@ -370,6 +370,17 @@ public:
     ///
     void llvm_zero_derivs(const Symbol& sym, llvm::Value* count);
 
+    llvm::Value* llvm_identity_weight_ptr()
+    {
+        if (m_llvm_identity_weight_ptr == nullptr)
+        {
+            m_llvm_identity_weight_ptr = ll.op_alloca(TypeDesc::TypeColor, 1);
+            for (int i = 0; i < 3; i++)
+                ll.op_store(ll.constant(1.f), ll.GEP(llvm_type(TypeDesc::TypeColor), m_llvm_identity_weight_ptr, 0, i));
+        }
+        return m_llvm_identity_weight_ptr;
+    }
+
     /// Generate a debugging printf at shader execution time.
     void llvm_gen_debug_printf(string_view message);
 
@@ -548,6 +559,7 @@ private:
     llvm::Value* m_llvm_userdata_base_ptr;
     llvm::Value* m_llvm_output_base_ptr;
     llvm::Value* m_llvm_shadeindex;
+    llvm::Value* m_llvm_identity_weight_ptr;
     llvm::BasicBlock* m_exit_instance_block;  // exit point for the instance
     llvm::Type* m_llvm_type_sg;         // LLVM type of ShaderGlobals struct
     llvm::Type* m_llvm_type_groupdata;  // LLVM type of group data

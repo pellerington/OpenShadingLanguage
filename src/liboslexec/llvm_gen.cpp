@@ -3797,6 +3797,8 @@ LLVMGEN(llvm_gen_closure)
 
     OSL_DASSERT(op.nargs() >= (2 + weighted + clentry->nformal));
 
+    if (!clentry->exclusive_allocate)
+    {
     // Call osl_allocate_closure_component(closure, id, size).  It returns
     // the memory for the closure parameter data.
     llvm::Value* render_ptr = rop.ll.constant_ptr(rop.shadingsys().renderer(),
@@ -3890,6 +3892,42 @@ LLVMGEN(llvm_gen_closure)
 
     // Store result at the end, otherwise Ci = modifier(Ci) won't work
     rop.llvm_store_value(return_ptr, Result, 0, NULL, 0);
+    }
+    else
+    {
+        const ustring funcname = ustring::concat("osl_allocate_", closure_name);
+
+        llvm::Value* weight_ptr = weighted ? rop.llvm_void_ptr(*weight) : nullptr;// rop.llvm_identity_weight_ptr();
+
+        if(!weight_ptr)
+        {
+            weight_ptr = rop.ll.op_alloca(TypeDesc::TypeColor, 1);
+            for (int i = 0; i < 3; i++)
+                rop.ll.op_store(rop.ll.constant(1.f), rop.ll.GEP(rop.llvm_type(TypeDesc::TypeColor), weight_ptr, 0, i));
+        }
+
+        std::vector<llvm::Value*> args{ rop.sg_void_ptr(), weight_ptr };
+        for (int carg = 0; carg < clentry->nformal; ++carg) {
+            const ClosureParam& p = clentry->params[carg];
+            if (p.key != NULL)
+                break;
+            Symbol& sym = *rop.opargsym(op, carg + 2 + weighted);
+            TypeDesc t  = sym.typespec().simpletype();
+
+            if (!sym.typespec().is_closure_array() && !sym.typespec().is_structure() && equivalent(t, p.type)) {
+                args.push_back(rop.llvm_load_arg(sym));
+            } else {
+                rop.shadingcontext()->errorfmt(
+                    "Incompatible formal argument {} to '{}' closure ({} {}, expected {}). Prototypes don't match renderer registry ({}:{}).",
+                    carg + 1, closure_name, sym.typespec(), sym.unmangled(), p.type,
+                    op.sourcefile(), op.sourceline());
+            }
+        }
+        llvm::Value* return_ptr = rop.ll.call_function(funcname.c_str(), args);
+
+        // Store result at the end, otherwise Ci = modifier(Ci) won't work
+        rop.llvm_store_value(return_ptr, Result, 0, NULL, 0);
+    }
 
     return true;
 }
